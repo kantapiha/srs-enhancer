@@ -1,0 +1,43 @@
+{
+    "manifest_version": 2,
+    "name": "SRS Enhancer",
+    "version": "0.2",
+    "description": "Adds more race charts and other small enhancements.",
+    "icons": {
+        "48": "icons/48.png"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*.simracingsystem.com/raceresultssrs*"
+            ],
+            "js": [
+                "echarts/echarts.min.js", "srs_race_chart.js"
+            ]
+        },
+        {
+            "matches": [
+                "*://*.simracingsystem.com/member.php?*"
+            ],
+            "js": [
+                "srs_forum_to_race_profile_link.js"
+            ]
+        },
+        {
+            "matches": [
+                "*://*.simracingsystem.com/standings.php"
+            ],
+            "js": [
+                "srs_race_search.js"
+            ]
+        },
+        {
+            "matches": [
+                "*://*.simracingsystem.com/standingshistoric.php"
+            ],
+            "js": [
+                "srs_race_search.js"
+            ]
+        }
+    ]
+}
