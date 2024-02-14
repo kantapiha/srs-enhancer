@@ -12,7 +12,8 @@ class RaceData {
     this.laps = laps
     this.winningAverage = winningAverage
     this.raceName = raceName
-    this.gridPositions = {}
+    this.gridPositions = []
+    this.driverPositions = []
 
     this.allLaptimes = Object.values(laptimes).flat()
   }
@@ -59,7 +60,7 @@ class RaceData {
     }`
   }
 
-  gridPositionsFromDocument(doc) {
+  positionsFromDocument(doc) {
     for (const scriptTag of doc.querySelectorAll("script")) {
       const gridPosResult =
         /\$\s*\(\s*function\s*\(\s*\)\s*{\s*([\d\[\],d=;var\s]*;)/.exec(
@@ -74,6 +75,15 @@ class RaceData {
             data = trailingJsonParse(data)
             if (data.length > 0 && data[0].length > 1) {
               this.gridPositions[i] = data[0][1]
+              let positions = []
+              for (const lap of data) {
+                if (lap.length > 1) {
+                  positions.push(lap[1])
+                } else {
+                  break
+                }
+              }
+              this.driverPositions[i] = positions
             }
           }
           i++
@@ -104,7 +114,7 @@ let raceData = RaceData.fromTable(
 )
 
 raceData.raceNameFromTable(document.querySelector("tbody"))
-raceData.gridPositionsFromDocument(document)
+raceData.positionsFromDocument(document)
 
 showEchartsChart(raceData)
 
@@ -165,15 +175,19 @@ async function showEchartsChart(raceData) {
   demoParent.insertBefore(document.createElement("br"), demoContainer)
   demoParent.insertBefore(document.createElement("br"), demoContainer)
 
+  let racePositionsButton = document.createElement("button")
   let raceGapsButton = document.createElement("button")
   let laptimesButton = document.createElement("button")
 
+  racePositionsButton.appendChild(document.createTextNode("Positions"))
+  raceGapsButton.appendChild(document.createTextNode("Gaps"))
   laptimesButton.appendChild(document.createTextNode("Laptimes"))
-  raceGapsButton.appendChild(document.createTextNode("Race"))
 
-  laptimesButton.classList.add("chartTab")
+  racePositionsButton.classList.add("chartTab")
   raceGapsButton.classList.add("chartTab")
+  laptimesButton.classList.add("chartTab")
 
+  tabContainer.appendChild(racePositionsButton)
   tabContainer.appendChild(raceGapsButton)
   tabContainer.appendChild(laptimesButton)
 
@@ -182,6 +196,7 @@ async function showEchartsChart(raceData) {
 
   let chart = echarts.init(chartContainer, "dark")
 
+  let racePositionsData = []
   let laptimesData = []
   let raceGapsData = []
   let minGap = Infinity,
@@ -219,6 +234,18 @@ async function showEchartsChart(raceData) {
       raceGapsData.push({
         name: key,
         data: raceGaps,
+        type: "line",
+        symbolSize: 10,
+        lineStyle: {
+          width: 4,
+        },
+      })
+      racePositionsData.push({
+        name: key,
+        data:
+          driverIndex in raceData.driverPositions
+            ? raceData.driverPositions[driverIndex]
+            : [0],
         type: "line",
         symbolSize: 10,
         lineStyle: {
@@ -299,7 +326,17 @@ async function showEchartsChart(raceData) {
         },
       },
       xAxis: {
+        name: "laptime",
         data: range(raceData.laps, 1),
+      },
+      yAxis: {
+        axisLabel: {
+          formatter: function (value) {
+            return millisToTimeString(value, { showMillis: false })
+          },
+          showMinLabel: false,
+          showMaxLabel: false,
+        },
       },
       dataZoom: [
         {
@@ -341,7 +378,7 @@ async function showEchartsChart(raceData) {
           saveAsImage: {
             show: true,
             type: "png",
-            name: raceData.raceName + "_Race",
+            name: raceData.raceName + "_Gaps",
           },
         },
       },
@@ -390,7 +427,6 @@ async function showEchartsChart(raceData) {
             if (leader !== null) {
               time = "+" + millisToTimeString(data.value - leader)
             } else {
-              console.log(leader)
               lapDiv.innerText = "Lap: " + (data.dataIndex + 1).toString()
               time = millisToTimeString(
                 raceData.winningAverage * data.dataIndex + data.value
@@ -404,9 +440,18 @@ async function showEchartsChart(raceData) {
           return result
         },
       },
-
       xAxis: {
         data: range(raceData.laps + 1),
+      },
+      yAxis: {
+        name: "gap to winning pace",
+        axisLabel: {
+          formatter: function (value) {
+            return millisToTimeString(value, { showMillis: false })
+          },
+          showMinLabel: false,
+          showMaxLabel: false,
+        },
       },
       dataZoom: [
         {
@@ -432,8 +477,103 @@ async function showEchartsChart(raceData) {
     })
   }
 
-  laptimesButton.addEventListener("click", showLaptimes)
+  const showRacePositions = () => {
+    for (const button of document.querySelectorAll(".chartTab")) {
+      button.classList.remove("active")
+    }
+    racePositionsButton.classList.add("active")
+    chart.setOption({
+      toolbox: {
+        feature: {
+          restore: {
+            show: false,
+          },
+          saveAsImage: {
+            show: true,
+            type: "png",
+            name: raceData.raceName + "_Race",
+          },
+        },
+      },
+      tooltip: {
+        trigger: "none",
+        formatter: null,
+        /*formatter: function (params) {
+          //TODO ? show positions on the left
+          let result = document.createElement("div")
+          result.style = "margin: 0px 0 0;line-height: 1;"
+          let lapDiv = document.createElement("div")
+          lapDiv.style =
+            "font-size: 1rem;color:#666;font-weight:400;line-height: 1;"
+          let listDiv = document.createElement("div")
+          listDiv.style = "margin: 0px 0 0;line-height: 1;"
+          result.appendChild(lapDiv)
+          result.appendChild(listDiv)
+          let indexValuePairs = []
+          for (const data of params) {
+            indexValuePairs.push({
+              index: data.seriesIndex,
+              value: data.value,
+            })
+          }
+          indexValuePairs.sort(function (x, y) {
+            return x.value - y.value
+          })
+          let leader = null
+          for (const pair of indexValuePairs) {
+            let rowDiv = document.createElement("div")
+            rowDiv.style = "margin: 0px 0 0;line-height: 1;"
+            listDiv.appendChild(rowDiv)
+            let colorSpan = document.createElement("span")
+            let nameSpan = document.createElement("span")
+            let valueSpan = document.createElement("span")
+            rowDiv.appendChild(colorSpan)
+            rowDiv.appendChild(nameSpan)
+            rowDiv.appendChild(valueSpan)
+            colorSpan.style = `display:inline-block;margin-right:0.1rem;border-radius:10px;width:1rem;height:1rem;background-color:${
+              params[pair.index].color
+            };`
+            nameSpan.style =
+              "font-size:1rem;color:#666;font-weight:400;margin-left:0.25rem;"
+            valueSpan.style =
+              "float:right;margin-left:2rem;font-size:1rem;color:#666;font-weight:900;"
+            const data = params[pair.index]
+            let time
+            if (leader !== null) {
+              time = "+" + millisToTimeString(data.value - leader)
+            } else {
+              lapDiv.innerText = "Lap: " + (data.dataIndex + 1).toString()
+              time = millisToTimeString(
+                raceData.winningAverage * data.dataIndex + data.value
+              )
+              leader = data.value
+            }
+
+            nameSpan.innerText = data.seriesName
+            valueSpan.innerText = time
+          }
+          return result
+        },*/
+      },
+      xAxis: {
+        data: range(raceData.laps + 1),
+      },
+      yAxis: {
+        name: "position",
+        axisLabel: {
+          formatter: null,
+          showMinLabel: true,
+          showMaxLabel: true,
+        },
+      },
+      dataZoom: [],
+      series: racePositionsData,
+    })
+  }
+
+  racePositionsButton.addEventListener("click", showRacePositions)
   raceGapsButton.addEventListener("click", showRaceGaps)
+  laptimesButton.addEventListener("click", showLaptimes)
 
   let chartColors = await scrapeColors()
 
@@ -453,18 +593,12 @@ async function showEchartsChart(raceData) {
     yAxis: {
       inverse: true,
       type: "value",
-      name: "time",
       nameLocation: "middle",
       nameGap: 35,
       splitNumber: 10,
       scale: true,
       axisLabel: {
         show: true,
-        formatter: function (value) {
-          return millisToTimeString(value, { showMillis: false })
-        },
-        showMinLabel: false,
-        showMaxLabel: false,
       },
     },
     legend: {
@@ -483,7 +617,7 @@ async function showEchartsChart(raceData) {
     color: chartColors,
   })
 
-  showRaceGaps()
+  showRacePositions()
 
   window.addEventListener("resize", function () {
     chart.resize()
