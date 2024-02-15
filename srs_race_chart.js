@@ -326,10 +326,10 @@ async function showEchartsChart(raceData) {
         },
       },
       xAxis: {
-        name: "laptime",
         data: range(raceData.laps, 1),
       },
       yAxis: {
+        name: "laptime",
         axisLabel: {
           formatter: function (value) {
             return millisToTimeString(value, { showMillis: false })
@@ -340,6 +340,7 @@ async function showEchartsChart(raceData) {
       },
       dataZoom: [
         {
+          show: true,
           type: "slider",
           left: "left",
           yAxisIndex: 0,
@@ -355,6 +356,7 @@ async function showEchartsChart(raceData) {
           width: 50,
         },
         {
+          disabled: false,
           type: "inside",
           yAxisIndex: 0,
           filterMode: "none",
@@ -378,7 +380,7 @@ async function showEchartsChart(raceData) {
           saveAsImage: {
             show: true,
             type: "png",
-            name: raceData.raceName + "_Gaps",
+            name: raceData.raceName + "_RaceGaps",
           },
         },
       },
@@ -455,6 +457,7 @@ async function showEchartsChart(raceData) {
       },
       dataZoom: [
         {
+          show: true,
           type: "slider",
           left: "left",
           yAxisIndex: 0,
@@ -468,6 +471,7 @@ async function showEchartsChart(raceData) {
           width: 50,
         },
         {
+          disabled: false,
           type: "inside",
           yAxisIndex: 0,
           filterMode: "none",
@@ -491,69 +495,13 @@ async function showEchartsChart(raceData) {
           saveAsImage: {
             show: true,
             type: "png",
-            name: raceData.raceName + "_Race",
+            name: raceData.raceName + "_RacePositions",
           },
         },
       },
       tooltip: {
         trigger: "none",
         formatter: null,
-        /*formatter: function (params) {
-          //TODO ? show positions on the left
-          let result = document.createElement("div")
-          result.style = "margin: 0px 0 0;line-height: 1;"
-          let lapDiv = document.createElement("div")
-          lapDiv.style =
-            "font-size: 1rem;color:#666;font-weight:400;line-height: 1;"
-          let listDiv = document.createElement("div")
-          listDiv.style = "margin: 0px 0 0;line-height: 1;"
-          result.appendChild(lapDiv)
-          result.appendChild(listDiv)
-          let indexValuePairs = []
-          for (const data of params) {
-            indexValuePairs.push({
-              index: data.seriesIndex,
-              value: data.value,
-            })
-          }
-          indexValuePairs.sort(function (x, y) {
-            return x.value - y.value
-          })
-          let leader = null
-          for (const pair of indexValuePairs) {
-            let rowDiv = document.createElement("div")
-            rowDiv.style = "margin: 0px 0 0;line-height: 1;"
-            listDiv.appendChild(rowDiv)
-            let colorSpan = document.createElement("span")
-            let nameSpan = document.createElement("span")
-            let valueSpan = document.createElement("span")
-            rowDiv.appendChild(colorSpan)
-            rowDiv.appendChild(nameSpan)
-            rowDiv.appendChild(valueSpan)
-            colorSpan.style = `display:inline-block;margin-right:0.1rem;border-radius:10px;width:1rem;height:1rem;background-color:${
-              params[pair.index].color
-            };`
-            nameSpan.style =
-              "font-size:1rem;color:#666;font-weight:400;margin-left:0.25rem;"
-            valueSpan.style =
-              "float:right;margin-left:2rem;font-size:1rem;color:#666;font-weight:900;"
-            const data = params[pair.index]
-            let time
-            if (leader !== null) {
-              time = "+" + millisToTimeString(data.value - leader)
-            } else {
-              lapDiv.innerText = "Lap: " + (data.dataIndex + 1).toString()
-              time = millisToTimeString(
-                raceData.winningAverage * data.dataIndex + data.value
-              )
-              leader = data.value
-            }
-
-            nameSpan.innerText = data.seriesName
-            valueSpan.innerText = time
-          }
-          return result
-        },*/
       },
       xAxis: {
         data: range(raceData.laps + 1),
@@ -566,7 +514,28 @@ async function showEchartsChart(raceData) {
           showMaxLabel: true,
         },
       },
-      dataZoom: [],
+      dataZoom: [
+        {
+          show: false,
+          type: "slider",
+          left: "left",
+          yAxisIndex: 0,
+          filterMode: "none",
+          startValue: minGap - 500,
+          endValue: maxGap + 500,
+          labelPrecision: 100,
+          labelFormatter: function (value) {
+            return millisToTimeString(value, { shortMillis: true })
+          },
+          width: 50,
+        },
+        {
+          disabled: true,
+          type: "inside",
+          yAxisIndex: 0,
+          filterMode: "none",
+        },
+      ],
       series: racePositionsData,
     })
   }
@@ -579,7 +548,6 @@ async function showEchartsChart(raceData) {
 
   chart.setOption({
     backgroundColor: "#0000",
-
     xAxis: {
       axisLine: {
         onZero: false,
@@ -594,7 +562,7 @@ async function showEchartsChart(raceData) {
       inverse: true,
       type: "value",
       nameLocation: "middle",
-      nameGap: 35,
+      nameGap: 37,
       splitNumber: 10,
       scale: true,
       axisLabel: {

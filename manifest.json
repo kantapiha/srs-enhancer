@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "SRS Enhancer",
     "version": "0.2",
-    "description": "Improves Sim Racing System with additional features, like more race charts and a basic race search.",
+    "description": "Improves Sim Racing System with additional features, like more race charts and a basic search for past races.",
     "icons": {
         "48": "icons/48.png"
     },
